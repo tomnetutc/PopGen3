@@ -9,6 +9,9 @@
 - Advanced control of household and person variables across multiple geographic resolutions (region and geo).
 - Command-line interface for simplified usage and enhanced computational efficiency.
 - Fully compatible with Python 3, with updated dependencies.
+  
+## Previous Version
+For insights into the earlier versions of PopGen, please refer to the [legacy PopGen webpage](https://www.mobilityanalytics.org/popgen.html). This resource provides access to previous versions, detailed descriptions of software objectives, and paper references.
 
 ## Run PopGen3 Online
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1j1Stb8IA8OfaoPRh232kId8hqi3dUtur?usp=sharing)
