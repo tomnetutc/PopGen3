@@ -1,0 +1,99 @@
+project:
+ synthesize: True
+ name: Arizona_Synthetic_Population
+ location: ./Arizona
+#Setup input data with given forms
+ inputs:
+  entities: [household, groupquarter, person]
+  housing_entities: [household, groupquarter]
+  person_entities: [person]
+  column_names:
+   hid: hid
+   pid: pid
+   geo: geo
+   region: region
+   sample_geo: sample_geo
+  location:
+   geo_corr_mapping:
+    geo_to_sample: geo_sample_mapping.csv
+    region_to_sample: region_sample_mapping.csv
+    region_to_geo: region_geo_mapping.csv
+   sample:
+    household: household_sample.csv
+    person: person_sample.csv
+    groupquarter: groupquarter_sample.csv
+   marginals:
+    geo:
+     household: household_marginals.csv
+     person: person_marginals.csv
+     groupquarter: groupquarter_marginals.csv
+    region:
+     household: region_household_marginals.csv
+     person: region_person_marginals.csv
+     groupquarter: region_groupquarter_marginals.csv
+ scenario:
+  - description: Arizona TAZ Scenario 
+    apply_region_controls: True
+    control_variables:
+     region:
+      household: [rinc, hhrtotals]
+      groupquarter: [gqrtotals]
+      person: [rpsex, rpage,rempl, rptotals]
+     geo:
+      household: [hinc, hhtotals]
+      groupquarter: [gqtotals]
+      person: [psex, page,empl, ptotals]
+      
+    parameters:
+     ipf:
+      tolerance: 0.0001
+      iterations: 250
+      zero_marginal_correction: 0.00001
+      rounding_procedure: bucket
+      archive_performance_frequency: 1 
+     reweighting:
+      procedure: ipu
+      tolerance: 0.0001
+      inner_iterations: 1
+      outer_iterations: 50
+      archive_performance_frequency: 1
+     draws:
+      pvalue_tolerance: 0.9999
+      iterations: 25
+      seed: 0
+    geos_to_synthesize:
+     region:
+     #Leave empty blank if we synthesize specific region, then use ID
+      ids: [9]
+      all_ids: True
+     geo:
+      ids: []
+      all_ids: True
+    outputs:
+     performance: [ipf, reweighting, drawing]
+     weights:
+      export: True
+      collate_across_geos: False
+     multiway:
+      - variables: [hsize, hinc]
+        filename: hhsize_income.csv
+        filetype: csv
+        entity: household
+      - variables: [rpsex, rpage]
+        filename: rpsex_rpage.csv
+        filetype: csv
+        entity: person
+     summary:
+      region:
+       filename: summary_region.csv
+       filetype: csv
+      geo:
+       filename: summary_geo.csv
+       filetype: csv
+     synthetic_population:
+      housing:
+       filename: housing_synthetic.csv
+       filetype: csv
+      person:
+       filename: person_synthetic.csv
+       filetype: csv
