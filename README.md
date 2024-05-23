@@ -28,7 +28,7 @@ For insights into the earlier versions of PopGen, please refer to the [legacy Po
 ### Data Inputs
 
 #### Survey sample data:
-  `household_sample.csv`
+  `household_sample.csv`       
   `person_sample.csv`
 
 #### Population marginal data:
@@ -48,11 +48,30 @@ For insights into the earlier versions of PopGen, please refer to the [legacy Po
 
 Mapping files ensure accurate mapping and alignment of different data files with different resolutions. 
 
-Example of survey and marginal data collected and labeled with different geographic resolution levels:
+Example of Multi-Geographic Resolution Levels:
+- <small><i>Region Level:</i> Set as census county subdivision</small>
+- <small><i>Geo Level:</i> Set as census tracts</small>
+- <small><i>Sample Geo Level:</i> Set as Public Use Microdata Areas (PUMAs)</small>
 
-- **Region level**: Set as census county subdivision
-- **Geo level**: Set as census tracts
-- **Sample Geo level**: Set as Public Use Microdata Areas (PUMAs)
+### Configuration File 
+
+The `configuration.yaml` file contains several key sections for the PopGen setup. 
+
+#### Designed Input Keys
+
+| **Project Wide Setting** | **Input Data Files** | **Scenario Settings** |
+| --- | --- | --- |
+| - synthesize<br>- name<br>- location | - entities<br>- column_names<br>- location | - description<br>- apply_region_controls<br>- control_variables<br>- parameters<br>- geos_to_synthesize<br>- outputs |
+
+### Results Outputs
+
+#### Sample Weighting Results:
+
+`weights.csv`
+#### Generated Synthetic Population:
+`housing_synthetic.csv`                                
+`person_synthetic.csv`
+
 
 
 
