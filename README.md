@@ -28,8 +28,8 @@ For insights into the earlier versions of PopGen, please refer to the [legacy Po
 ### Data Inputs
 
 #### Survey sample data:
-  `household_sample.csv`: household-level data  
-  `person_sample.csv`: individual-level data
+  `household_sample.csv`
+  `person_sample.csv`
 
 #### Population marginal data:
 
