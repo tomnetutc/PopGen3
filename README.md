@@ -14,7 +14,7 @@
 For insights into the earlier versions of PopGen, please refer to the [legacy PopGen webpage](https://www.mobilityanalytics.org/popgen.html). This resource provides access to previous versions, detailed descriptions of software objectives, and paper references.
 
 ## Run PopGen3 Online
-- **Binder**: A cloud-based Jupyter notebook with step-by-step tutorials on data input understanding and output visualization.
+- **Binder**: A cloud-based Jupyter notebook with step-by-step tutorials for data input understanding and output visualization.
 
    [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tomnetutc/PopGen3/main?filepath=popgen_learning%2Fpopgen_learning.ipynb)
 
