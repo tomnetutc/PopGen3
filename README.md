@@ -14,8 +14,15 @@
 For insights into the earlier versions of PopGen, please refer to the [legacy PopGen webpage](https://www.mobilityanalytics.org/popgen.html). This resource provides access to previous versions, detailed descriptions of software objectives, and paper references.
 
 ## Run PopGen3 Online
-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1j1Stb8IA8OfaoPRh232kId8hqi3dUtur?usp=sharing)
-- [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tomnetutc/PopGen3/main?filepath=popgen_learning%2Fpopgen_learning.ipynb)
+- **Binder**: Launches a Jupyter notebook with step-by-step tutorials, including data input understanding and output visualization.
+  
+  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/chnfanyu/PopGen3/HEAD)
+
+- **Colab**: Provides a cloud-based environment for executing PopGen3 code and downloading result packages.
+
+   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1j1Stb8IA8OfaoPRh232kId8hqi3dUtur?usp=sharing)
+
+
 
 ## Contents
 
