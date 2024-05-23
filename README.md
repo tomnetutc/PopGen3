@@ -46,8 +46,6 @@ For insights into the earlier versions of PopGen, please refer to the [legacy Po
   `region_geo_mapping.csv`  
   `geo_sample_mapping.csv`
 
-Mapping files ensure accurate mapping and alignment of different data files with different resolutions. 
-
 Example of Multi-Geographic Resolution Levels:
 - <small><i>Region Level:</i> Set as census county subdivision</small>
 - <small><i>Geo Level:</i> Set as census tracts</small>
