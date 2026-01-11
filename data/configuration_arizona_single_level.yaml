@@ -1,0 +1,47 @@
+project:
+  name: Arizona_Synthetic_Population_SingleLevel
+  location: ./Arizona
+
+#Setup input data with given forms
+  inputs:
+    entities: [household, groupquarter, person]
+    housing_entities: [household, groupquarter]
+    person_entities: [person]
+
+    column_names:
+      hid: hid
+      pid: pid
+      geo: geo
+      region: geo        
+      sample_geo: sample_geo
+
+    location:
+      sample:
+        household: household_sample.csv
+        groupquarter: groupquarter_sample.csv
+        person: person_sample.csv
+
+      geo_corr_mapping:
+        geo_to_sample: geo_sample_mapping.csv
+
+      marginals:
+        geo:
+          household: household_marginals.csv
+          groupquarter: groupquarter_marginals.csv
+          person: person_marginals.csv
+
+  scenario:
+    - description: Arizona TAZ SingleLevel
+      apply_cross_level: false
+      synthesize: true
+
+      geos_to_synthesize:
+        geo:
+          ids: [4013010101, 4013010102]
+          all_ids: false
+
+      control_variables:
+        geo:
+          household: [hhtotals, hinc, hsize]
+          groupquarter: [gqtotals]
+          person: [ptotals, psex, page, empl]

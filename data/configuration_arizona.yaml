@@ -1,5 +1,5 @@
 project:
- synthesize: True
+ 
  name: Arizona_Synthetic_Population
  location: ./Arizona
 #Setup input data with given forms
@@ -33,16 +33,19 @@ project:
      groupquarter: region_groupquarter_marginals.csv
  scenario:
   - description: Arizona TAZ Scenario 
-    apply_region_controls: True
+    apply_cross_level: True
+    synthesize: True
     control_variables:
      region:
-      household: [rinc, hhrtotals]
+      household: [rhinc,rhsize,hhrtotals]
       groupquarter: [gqrtotals]
-      person: [rpsex, rpage,rempl, rptotals]
+      person: [rpsex, rpage, rempl, rptotals]
+#      person: [rptotals]
      geo:
-      household: [hinc, hhtotals]
+      household: [hinc, hsize,hhtotals]
       groupquarter: [gqtotals]
       person: [psex, page,empl, ptotals]
+#      person: [ptotals]
       
     parameters:
      ipf:

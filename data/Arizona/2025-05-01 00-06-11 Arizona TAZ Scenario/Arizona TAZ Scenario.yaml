@@ -1,0 +1,88 @@
+apply_cross_level: false
+apply_region_controls: true
+control_variables:
+  geo:
+    groupquarter:
+    - gqtotals
+    household:
+    - hinc
+    - hsize
+    - hhtotals
+    person:
+    - psex
+    - page
+    - empl
+    - ptotals
+  region:
+    groupquarter:
+    - gqrtotals
+    household:
+    - rhinc
+    - rhsize
+    - hhrtotals
+    person:
+    - rpsex
+    - rpage
+    - rempl
+    - rptotals
+description: Arizona TAZ Scenario
+geos_to_synthesize:
+  geo:
+    all_ids: true
+    ids: []
+  region:
+    all_ids: true
+    ids:
+    - 9
+outputs:
+  multiway:
+  - entity: household
+    filename: hhsize_income.csv
+    filetype: csv
+    variables:
+    - hsize
+    - hinc
+  - entity: person
+    filename: rpsex_rpage.csv
+    filetype: csv
+    variables:
+    - rpsex
+    - rpage
+  performance:
+  - ipf
+  - reweighting
+  - drawing
+  summary:
+    geo:
+      filename: summary_geo.csv
+      filetype: csv
+    region:
+      filename: summary_region.csv
+      filetype: csv
+  synthetic_population:
+    housing:
+      filename: housing_synthetic.csv
+      filetype: csv
+    person:
+      filename: person_synthetic.csv
+      filetype: csv
+  weights:
+    collate_across_geos: false
+    export: true
+parameters:
+  draws:
+    iterations: 25
+    pvalue_tolerance: 0.9999
+    seed: 0
+  ipf:
+    archive_performance_frequency: 1
+    iterations: 250
+    rounding_procedure: bucket
+    tolerance: 0.0001
+    zero_marginal_correction: 1.0e-05
+  reweighting:
+    archive_performance_frequency: 1
+    inner_iterations: 1
+    outer_iterations: 50
+    procedure: ipu
+    tolerance: 0.0001
