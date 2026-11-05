@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.5 (unreleased)
+## 3.0.5 (2026-11-05)
 
 **Compatibility promise:** for every input that 3.0.4 handled correctly, the
 outputs (weights, synthetic population, summaries, multiway tables, performance
