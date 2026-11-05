@@ -13,16 +13,20 @@ from .ipf import Run_IPF
 from .reweighting import Run_Reweighting
 from .draw import Draw_Population
 from .output import Syn_Population
+from .errors import ScenarioError
+from . import validation
 
 
 
 class Project:
     """Primary class to set up and run PopGen projects."""
 
-    def __init__(self, config_loc):
+    def __init__(self, config_loc, strict=None):
         self.config_loc = config_loc
         self._config = None
         self.db = None
+        # None = use `validation.strict` from the YAML (default False).
+        self.strict_override = strict
 
     def load_project(self):
         """Loads the project configuration and initializes necessary components."""
@@ -71,6 +75,7 @@ class Project:
             project_synthesize = True
         project_synthesize = bool(project_synthesize)
 
+        failures = []
         for scenario_config in scenarios_config:
             if "parameters" not in scenario_config._data or scenario_config._data["parameters"] is None:
                 logging.warning("'parameters' missing in scenario. Using default values.")
@@ -78,13 +83,14 @@ class Project:
 
             logging.info(f"Running scenario: {scenario_config.description}")
 
-            # Whether to run in 2-level (region->geo) mode or single-level mode.
-            # Raw access avoids warning spam for optional keys.
-            apply_cross_level = bool(scenario_config.get_raw("apply_cross_level", True))
-            if not apply_cross_level:
-                self.process_geo_region_mappings(scenario_config)
-
             try:
+                # Whether to run in 2-level (region->geo) mode or single-level mode.
+                # Raw access avoids warning spam for optional keys.  (Inside the try
+                # since 3.0.5 so a failure here is reported like any scenario failure.)
+                apply_cross_level = bool(scenario_config.get_raw("apply_cross_level", True))
+                if not apply_cross_level:
+                    self.process_geo_region_mappings(scenario_config)
+
                 # Scenario-level override (optional).
                 # Use raw access so missing keys don't produce warnings.
                 scenario_synthesize = scenario_config.get_raw('synthesize', None)
@@ -100,11 +106,27 @@ class Project:
                     self._config.project.inputs.column_names,
                     scenario_config,
                     self.db,
-                    scenario_synthesize
+                    scenario_synthesize,
+                    strict=validation.resolve_strict(self._config.project, scenario_config, self.strict_override),
                 )
                 scenario_obj.run_scenario()
             except Exception as e:
-                logging.error(f"Error running scenario: {scenario_config.description}", exc_info=True)
+                # The traceback was already logged by Scenario.run_scenario (or is logged
+                # here if the failure happened while constructing the scenario).
+                if not getattr(e, "_popgen_logged", False):
+                    logging.error(f"Error running scenario: {scenario_config.description}", exc_info=True)
+                failures.append((scenario_config.description, e))
+
+        # Up to 3.0.4 failures were only logged and the run "succeeded".  Now every
+        # scenario is still attempted, but the caller (and the CLI exit code) learns
+        # that something failed.
+        if failures:
+            names = ", ".join(repr(d) for d, _ in failures)
+            raise ScenarioError(
+                f"{len(failures)} of {len(scenarios_config)} scenario(s) failed: {names}. "
+                f"First error: {type(failures[0][1]).__name__}: {failures[0][1]}",
+                failures,
+            ) from failures[0][1]
 
     def process_geo_region_mappings(self, scenario_config):
         """Enable single-level workflows.
@@ -261,7 +283,7 @@ class Scenario:
     """Class to manage and execute a scenario."""
 
     def __init__(self, location, entities, housing_entities, person_entities,
-                 column_names_config, scenario_config, db, synthesize):
+                 column_names_config, scenario_config, db, synthesize, strict=False):
         self.location = location
         self.entities = entities
         self.housing_entities = housing_entities
@@ -270,12 +292,14 @@ class Scenario:
         self.scenario_config = scenario_config
         self.db = db
         self.synthesize = synthesize
+        self.strict = bool(strict)
         self.start_time = time.time()
 
     def run_scenario(self):
         """Executes the scenario."""
         try:
             self._get_geo_ids()
+            self._validate_inputs()
             self._run_ipf()
             self._run_weighting()
 
@@ -293,11 +317,23 @@ class Scenario:
                 self._output_weights_only()
         except Exception as e:
             logging.error(f"Scenario execution failed: {self.scenario_config.description}", exc_info=True)
+            try:
+                e._popgen_logged = True  # avoid logging the same traceback twice
+            except Exception:
+                pass
+            raise
 
     def _get_geo_ids(self):
         """Enumerates geographical IDs for the scenario."""
         self.db.enumerate_geo_ids_for_scenario(self.scenario_config)
         logging.info("Geographical IDs enumerated successfully.")
+
+    def _validate_inputs(self):
+        """Read-only input checks; raise only in strict mode (see popgen.validation)."""
+        issues = validation.validate_scenario(
+            self.db, self.scenario_config, self.column_names_config,
+            self.entities, self.housing_entities, self.person_entities)
+        validation.report(issues, self.scenario_config.description, self.strict)
 
     def _run_ipf(self):
         """Runs iterative proportional fitting (IPF)."""
@@ -311,7 +347,8 @@ class Scenario:
     def _run_weighting(self):
         """Runs the reweighting process."""
         self.run_reweighting_obj = Run_Reweighting(
-            self.entities, self.column_names_config, self.scenario_config, self.db
+            self.entities, self.column_names_config, self.scenario_config, self.db,
+            housing_entities=self.housing_entities,
         )
         self.run_reweighting_obj.create_ds()
         self.run_reweighting_obj.run_reweighting(
@@ -374,6 +411,10 @@ class Scenario:
             self.run_reweighting_obj.average_diffs.to_csv(perf_path)
         except Exception:
             logging.warning("Failed to write reweighting performance diagnostics.", exc_info=True)
+        try:
+            self.run_reweighting_obj.export_fit_summary(outputlocation)
+        except Exception:
+            logging.warning("Failed to write reweighting fit summary.", exc_info=True)
 
         # Write a copy of the scenario configuration used.
         try:
@@ -382,15 +423,22 @@ class Scenario:
             logging.warning("Failed to write scenario configuration to output folder.", exc_info=True)
 
 
-def popgen_run(project_config):
-    """Entry point for running PopGen project."""
+def popgen_run(project_config, strict=None):
+    """Entry point for running PopGen project.
+
+    Raises :class:`popgen.errors.ScenarioError` if any scenario fails (after
+    attempting all of them).  ``strict=True`` stops a scenario before IPF when
+    input checks find errors; ``None`` uses ``validation.strict`` from the YAML.
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
     start_time = time.time()
-    p_obj = Project(project_config)
-    p_obj.load_project()
-    p_obj.run_scenarios()
-    logging.info(f"Total execution time: {time.time() - start_time:.4f} seconds")
+    try:
+        p_obj = Project(project_config, strict=strict)
+        p_obj.load_project()
+        p_obj.run_scenarios()
+    finally:
+        logging.info(f"Total execution time: {time.time() - start_time:.4f} seconds")

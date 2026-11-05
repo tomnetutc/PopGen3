@@ -35,7 +35,11 @@ class Draw_Population:
 
     def draw_population(self):
         """Executes the drawing of households for each geographical ID."""
-        np.random.seed(self.seed)
+        # A private legacy (MT19937) generator seeded exactly like the former
+        # `np.random.seed(seed)` + `np.random.random(n)` calls: the random stream,
+        # and therefore the synthetic population, is unchanged, but PopGen no
+        # longer resets NumPy's global random state behind the caller's back.
+        self._rng = np.random.RandomState(self.seed)
         logging.info("Starting synthetic population drawing.")
 
         for geo_id in self.geo_ids:
@@ -92,7 +96,8 @@ class Draw_Population:
     def _pick_households(self, geo_id_frequencies, geo_cumulative_weights):
         """Selects households based on cumulative probabilities."""
         last = 0
-        rand_numbers = np.random.random(int(geo_id_frequencies.sum()))
+        rng = getattr(self, "_rng", None) or np.random.mtrand._rand
+        rand_numbers = rng.random_sample(int(geo_id_frequencies.sum()))
         list_rows_syn_subpop = []
 
         for column in self.geo_frequencies.columns:
@@ -106,6 +111,10 @@ class Draw_Population:
                 continue
             column_bins = np.searchsorted(geo_cumulative_weights[column], rand_numbers[last:last + column_frequency],
                                           side="right")
+            # Rounding can leave the last cumulative probability a hair below 1.0;
+            # a draw above it used to index past the end and crash (IndexError).
+            # Clipping only touches that case, so normal draws are unchanged.
+            np.minimum(column_bins, rows.size - 1, out=column_bins)
             last += column_frequency
             list_rows_syn_subpop.append(rows.take(column_bins))
 

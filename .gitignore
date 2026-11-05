@@ -8,3 +8,12 @@ build/
 # macOS
 .DS_Store
 
+
+# PopGen run outputs: every run writes a "<YYYY-MM-DD HH-MM-SS> <scenario>" folder
+# next to its inputs.  Keep them out of version control.
+data/**/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]-[0-9][0-9]-[0-9][0-9] */
+tests/**/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]-[0-9][0-9]-[0-9][0-9] */
+
+# Jupyter / pytest
+.ipynb_checkpoints/
+.pytest_cache/

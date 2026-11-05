@@ -85,9 +85,12 @@ class IPF:
             adjustment = 1 - borrowed_sum
             self.seed_all.loc[~null_rows, "prob"] *= adjustment
 
-            return self.seed_all["prob"].copy().values
+            # An explicit writable float64 copy: under pandas >= 3 (copy-on-write)
+            # `.values` is read-only and the in-place updates below failed with
+            # "assignment destination is read-only".  Same values as before.
+            return self.seed_all["prob"].to_numpy(dtype=float, copy=True)
         else:
-            return self.seed["frequency"].copy().values
+            return self.seed["frequency"].to_numpy(dtype=float, copy=True)
 
     def _adjust_cell_frequencies(self):
         """Adjusts cell frequencies based on marginal constraints."""
