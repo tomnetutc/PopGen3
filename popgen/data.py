@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import logging
 from .config import Config, ConfigError
+from .errors import ConfigurationError
 
 
 class DB:
@@ -220,7 +221,7 @@ class DB:
                     elif r_all is True or r_all is None:
                         region_ids = list(self.region_ids_all)
                     elif r_all is False:
-                        raise ValueError(
+                        raise ConfigurationError(
                             "geos_to_synthesize.region.all_ids is False but ids is empty. "
                             "Provide ids or set all_ids: True."
                         )
@@ -234,16 +235,27 @@ class DB:
                             "Use geos_to_synthesize.region to select regions."
                         )
                 else:
-                    # Single-level: region == geo. Accept either block, prefer geo (more intuitive).
+                    # Single-level: region == geo.  An explicit `ids` list always wins,
+                    # whichever block it is written in (geo block first).  3.0.4 looked at
+                    # the geo block only, so the template value `geo: {ids: [], all_ids: True}`
+                    # silently overrode `region: {ids: [9]}` and ran *every* region -- the
+                    # configs used for THA Wave 1 (written for 3.0.1/3.0.2) failed that way.
                     chosen_all = None
                     chosen_ids: list = []
                     chosen_level = None
-                    if g_present:
-                        chosen_all, chosen_ids = g_all, g_ids
-                        chosen_level = "geo"
+                    if g_present and g_ids:
+                        chosen_all, chosen_ids, chosen_level = g_all, g_ids, "geo"
+                        if r_present and r_ids and list(r_ids) != list(g_ids):
+                            logging.warning(
+                                "Single-level scenario: geos_to_synthesize.geo.ids and .region.ids differ; "
+                                f"using the geo ids {g_ids[:10]}."
+                            )
+                    elif r_present and r_ids:
+                        chosen_all, chosen_ids, chosen_level = r_all, r_ids, "region"
+                    elif g_present:
+                        chosen_all, chosen_level = g_all, "geo"
                     elif r_present:
-                        chosen_all, chosen_ids = r_all, r_ids
-                        chosen_level = "region"
+                        chosen_all, chosen_level = r_all, "region"
 
                     if chosen_ids:
                         if chosen_all is True:
@@ -255,7 +267,7 @@ class DB:
                     elif chosen_all is True or chosen_all is None:
                         region_ids = list(self.region_ids_all) if self.region_ids_all else list(self.geo_ids_all)
                     elif chosen_all is False:
-                        raise ValueError(
+                        raise ConfigurationError(
                             "Single-level scenario: geos_to_synthesize.<level>.all_ids is False but ids is empty. "
                             "Provide ids or set all_ids: True."
                         )
@@ -270,7 +282,7 @@ class DB:
                 universe = set(self.region_ids_all)
                 missing = [rid for rid in region_ids if rid not in universe]
                 if missing:
-                    raise KeyError(
+                    raise ConfigurationError(
                         "The following region ids were requested in geos_to_synthesize but were not found in the project's region ids: "
                         f"{missing[:20]}" + (" ..." if len(missing) > 20 else "")
                     )
@@ -310,6 +322,10 @@ class DB:
             logging.info(f"  Region ids (preview): {_preview(self.region_ids)}")
             logging.info(f"  Geo ids (preview):    {_preview(self.geo_ids)}")
 
+        except ConfigurationError:
+            # An explicit but invalid selection (unknown ids, all_ids False with no ids).
+            # 3.0.4 caught its own error here and silently ran ALL geographies.
+            raise
         except Exception as e:
             logging.warning(
                 f"Failed to enumerate geo/region ids for scenario due to {e}. Defaulting to all."

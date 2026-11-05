@@ -189,7 +189,10 @@ class Syn_Population:
     def _stack_records(self):
         """Stack records for the synthetic population."""
         start_time = time.time()
-        self.pop_syn = pd.concat(self.pop_rows_syn_dict.values(), copy=False)
+        # `copy=` is deprecated under pandas 3 copy-on-write (removed in pandas 4);
+        # keep it only where it still has an effect.  Same result either way.
+        concat_kwargs = {"copy": False} if int(pd.__version__.split(".")[0]) < 3 else {}
+        self.pop_syn = pd.concat(self.pop_rows_syn_dict.values(), **concat_kwargs)
         logging.info(f"Time elapsed for stacking population: {time.time() - start_time:.4f} seconds")
 
     def _create_synthetic_population(self):
@@ -274,6 +277,9 @@ class Syn_Population:
             self._export_all_df_in_dict(self.run_ipf_obj.region_average_diffs_dict, "ipf_region_average_diffs_")
         if "reweighting" in values_to_export:
             self._export_df(self.run_ipu_obj.average_diffs, "reweighting_average_diffs")
+            export_fit = getattr(self.run_ipu_obj, "export_fit_summary", None)
+            if callable(export_fit):
+                export_fit(self.outputlocation)
         if "drawing" in values_to_export:
             self._export_df(self.draw_population_obj.draws_performance, "draws")
         logging.info("Performance data export completed.")
