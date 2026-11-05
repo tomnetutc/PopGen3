@@ -9,10 +9,17 @@ This package implements a population synthesis pipeline:
 """
 
 from .project import popgen_run
+from .errors import ConfigurationError, InputValidationError, PopGenError, ScenarioError
 
-__version__ = '3.0.4'
+__version__ = '3.0.5'
 
 
-def run(config_path: str) -> None:
-    """Run PopGen from Python."""
-    popgen_run(config_path)
+def run(config_path: str, strict=None) -> None:
+    """Run PopGen from Python.
+
+    Raises :class:`popgen.ScenarioError` if any scenario fails (all scenarios
+    are attempted first).  ``strict=True`` stops a scenario before IPF when the
+    input checks find errors; the default (None) follows ``validation.strict``
+    in the YAML, which defaults to False.
+    """
+    popgen_run(config_path, strict=strict)

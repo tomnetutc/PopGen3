@@ -1,0 +1,71 @@
+{
+ "meta": {
+  "generated_with": "popgen3 3.0.4 from PyPI; Python 3.12.3, numpy 1.26.4, pandas 2.2.3, scipy 1.13.1 (identical on Python 3.10/3.11 with pandas 1.5.3/2.2.3; the 3.0.5 dev build reproduces them on pandas 3.0.5/numpy 2.5.3)",
+  "note": "survey_wave1_style hashes come from 3.0.4 run with the id written in the geo block, because 3.0.4 mis-selects geographies for the region-block form; the outputs are otherwise identical.",
+  "excluded": "full-precision diagnostics (*average_diffs*, draws.csv), scenario YAML copies and files new in 3.0.5"
+ },
+ "runs": {
+  "arizona_main": {
+   "config": "data/configuration_arizona.yaml",
+   "files": {
+    "hhsize_income.csv": "d5cae0ee5cecc5126ad3be83c6a55941d8e5b15dde20f624b6b10350598eb99c",
+    "housing_synthetic.csv": "ca164b05ae8183947b2e7b0fac34adddb696a5f693a1627323584cc744c597e3",
+    "ipf_geo_iters_convergence_groupquarter.csv": "9f9b588813cb07687c721e2027a6e0b08b26aee18040f9297deecd51e061e3cb",
+    "ipf_geo_iters_convergence_household.csv": "069a528190756e3a14a202a8a7575a0e99ea1c2c5d679d67f6abcc2a3d751652",
+    "ipf_geo_iters_convergence_person.csv": "100a15763a9726ed11c75ddfdb202a0b3b3e0ade27800756a90b869d9c5dca96",
+    "ipf_region_iters_convergence_groupquarter.csv": "3e6770394ea738dfb32e5f900780a920b4a14312cbbb339739a09c99d699390a",
+    "ipf_region_iters_convergence_household.csv": "6d64f9121605a2850ab6e0ee98338156d13edc2503b40d795c3ae316ca27b8ab",
+    "ipf_region_iters_convergence_person.csv": "b5bd8d881b0f53c83aadd9d523bdaa6d2c2508d232e6d6dbe8db1f9df018b20d",
+    "person_synthetic.csv": "dd02a92fdf6a2fb88fd6e63533248bda84ddaca6a431bdc71bf233e8f9551e73",
+    "rpsex_rpage.csv": "b8c2bff77b8c1945c2b92b4199805d37b8dd57544c17fabf17ca7b0fb1767df0",
+    "summary_geo.csv": "d7b25aa899f1d1452e4a57728fadb2e7909c00dc70e8d6ab8feeea2f19b04573",
+    "summary_region.csv": "811371ea595febc22d911f643fe3b16de1c19aa5b25737f1a99893a217e69b89",
+    "weights.csv": "a07ced198826aca1e374c65fa5131daea5c9024488a0075af4d34722a9a22f3b"
+   }
+  },
+  "arizona_two_levels": {
+   "config": "data/configuration_arizona_two_levels.yaml",
+   "files": {
+    "housing_synthetic.csv": "ca164b05ae8183947b2e7b0fac34adddb696a5f693a1627323584cc744c597e3",
+    "ipf_geo_iters_convergence_groupquarter.csv": "9f9b588813cb07687c721e2027a6e0b08b26aee18040f9297deecd51e061e3cb",
+    "ipf_geo_iters_convergence_household.csv": "069a528190756e3a14a202a8a7575a0e99ea1c2c5d679d67f6abcc2a3d751652",
+    "ipf_geo_iters_convergence_person.csv": "100a15763a9726ed11c75ddfdb202a0b3b3e0ade27800756a90b869d9c5dca96",
+    "ipf_region_iters_convergence_groupquarter.csv": "3e6770394ea738dfb32e5f900780a920b4a14312cbbb339739a09c99d699390a",
+    "ipf_region_iters_convergence_household.csv": "6d64f9121605a2850ab6e0ee98338156d13edc2503b40d795c3ae316ca27b8ab",
+    "ipf_region_iters_convergence_person.csv": "b5bd8d881b0f53c83aadd9d523bdaa6d2c2508d232e6d6dbe8db1f9df018b20d",
+    "person_synthetic.csv": "dd02a92fdf6a2fb88fd6e63533248bda84ddaca6a431bdc71bf233e8f9551e73",
+    "summary_geo.csv": "d7b25aa899f1d1452e4a57728fadb2e7909c00dc70e8d6ab8feeea2f19b04573",
+    "summary_region.csv": "811371ea595febc22d911f643fe3b16de1c19aa5b25737f1a99893a217e69b89",
+    "weights.csv": "a07ced198826aca1e374c65fa5131daea5c9024488a0075af4d34722a9a22f3b"
+   }
+  },
+  "arizona_single_level": {
+   "config": "data/configuration_arizona_single_level.yaml",
+   "files": {
+    "housing_synthetic.csv": "72e2d45ffee50bdc206dbe6044624ce9ade94e8220a162e65564d27efb79e824",
+    "person_synthetic.csv": "731f51e8337fe97af161c3bba5b4d3d130f745bef536f1055c8a1b2bfe84863f",
+    "weights.csv": "233e4c70b4896a2dc8c758416a83cff6cedba5eb2451f8e9b403bb53fcfa15e6"
+   }
+  },
+  "survey_weighting": {
+   "config": "tests/data/survey_single/config_weighting.yaml",
+   "files": {
+    "weights.csv": "5b6720a4dff76e4103012c17092009da6b3c4620c3825e765e580b90c67e7eb6"
+   }
+  },
+  "survey_wave1_style": {
+   "config": "tests/data/survey_single/config_wave1_style.yaml",
+   "files": {
+    "housing_synthetic.csv": "12962c3e68007796a6e66e8a5509876fecaeba2c041389fb989d5988cf3c88d7",
+    "ipf_geo_iters_convergence_household.csv": "0688f50414e888f633e6c222776d821541f87d4c4f41375de02ce2cef6de779d",
+    "ipf_geo_iters_convergence_person.csv": "df24c39d01e7f03c085d098b18002863332b046284acd984e393e6f6fcb6d79e",
+    "ipf_region_iters_convergence_household.csv": "0688f50414e888f633e6c222776d821541f87d4c4f41375de02ce2cef6de779d",
+    "ipf_region_iters_convergence_person.csv": "df24c39d01e7f03c085d098b18002863332b046284acd984e393e6f6fcb6d79e",
+    "person_synthetic.csv": "31e42a5edcbc0b695efc9c17b13432961074187b2bc4df7f4ffc69f793316651",
+    "summary_geo.csv": "8fb5d839822c4b1424b2726459e2b140a4b43212b27b9db4048291496282ed9c",
+    "summary_region.csv": "4084257f9b91255d0cc5678a867ee695cc0b0cef15394d52c1a5d6036419eba7",
+    "weights.csv": "5b6720a4dff76e4103012c17092009da6b3c4620c3825e765e580b90c67e7eb6"
+   }
+  }
+ }
+}

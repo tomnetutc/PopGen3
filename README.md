@@ -16,7 +16,7 @@ For insights into the earlier versions of PopGen, please refer to the [legacy Po
 ## Run PopGen3 Online
 - **Binder**: A cloud-based Jupyter notebook with step-by-step tutorials for data input understanding and output visualization.
 
-   [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tomnetutc/PopGen3/main?filepath=popgen_learning%2Fpopgen_learning.ipynb)
+   [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tomnetutc/PopGen3/main?filepath=popgen_learning%2FLearning_materials.ipynb)
 
 - **Colab**: Provides a cloud-based environment for executing PopGen3 code and downloading result packages.
 
@@ -61,6 +61,8 @@ The `configuration.yaml` file contains several key sections for the PopGen setup
 | --- | --- | --- |
 | - synthesize<br>- name<br>- location | - entities<br>- column_names<br>- location | - description<br>- apply_region_controls<br>- control_variables<br>- parameters<br>- geos_to_synthesize<br>- outputs |
 
+Entity names are free (`person`, `adult`, ...). When household and person controls cannot all be met at once, IPU gives priority to the entities listed under `housing_entities`: their totals are matched exactly and the person totals as closely as possible (Ye et al., 2009). Since 3.0.5 this does not depend on how the entities are named.
+
 ### Results Outputs
 
 #### Sample Weighting Results:
@@ -70,6 +72,25 @@ The `configuration.yaml` file contains several key sections for the PopGen setup
 `housing_synthetic.csv`                                
 `person_synthetic.csv`
 
+#### Diagnostics (new in 3.0.5):
+`reweighting_fit_summary.csv` - for every geography and entity, how closely the weighted sample matches the control totals (`margin_*` columns) and the IPF multiway cells (`cell_*` columns). It is written wherever `reweighting_average_diffs.csv` is (always in weights-only runs; with `performance: [reweighting]` otherwise). Judge the fit by the `margin_*` columns: at region level the cell targets come from a separate IPF on the region seed, which IPU does not finish on, so large region-level `cell_*` values are expected.
 
+### Input checks and errors (new in 3.0.5)
+Before IPF, PopGen checks the inputs (duplicate household ids, missing values in control variables, categories present in the sample but not in the marginals and vice versa, control totals that disagree, geographies without sample records) and logs what it finds. The checks never change results. To stop a scenario when they find errors, add to the scenario (or project):
 
+```yaml
+validation:
+  strict: true
+```
 
+or run `popgen --strict config.yaml` / `popgen.run("config.yaml", strict=True)`.
+
+If a scenario fails, `popgen.run` now raises `popgen.ScenarioError` (after attempting all scenarios) and the `popgen` command exits with status 1; earlier versions only logged the error.
+
+## Testing
+```
+pip install -e ".[test]"
+pytest                                   # golden-output, accuracy, validation and CLI tests
+POPGEN_DIFFERENTIAL=1 pytest             # also compare every output with popgen3 3.0.4 from PyPI
+```
+The golden tests require the outputs to stay byte-for-byte identical to release 3.0.4; see `CHANGELOG.md` for the history of numerical changes between releases.

@@ -1,0 +1,44 @@
+# Survey weighting, single geography level, one marginals file for both
+# entities, weights only -- the usual survey weighting setup.
+project:
+  synthesize: false
+  name: Survey_SingleLevel
+  location: .
+
+  inputs:
+    entities: [household]
+    housing_entities: [household]
+    person_entities: [person]
+
+    column_names:
+      hid: hid
+      pid: pid
+      geo: geo
+      region: geo
+      sample_geo: sample_geo
+
+    location:
+      sample:
+        household: survey_sample.csv
+        person: survey_sample.csv
+
+      geo_corr_mapping:
+        geo_to_sample: geo_sample_mapping.csv
+
+      marginals:
+        geo:
+          household: marginals.csv
+          person: marginals.csv
+
+  scenario:
+    - description: SingleLevel
+      apply_cross_level: false
+
+      geos_to_synthesize:
+        geo:
+          ids: [1]
+          all_ids: false
+
+      control_variables:
+        geo:
+          household: [age_group, educ, hispanic, hh_income, hh_size, hhtotals]
