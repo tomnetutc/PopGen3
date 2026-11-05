@@ -1,0 +1,64 @@
+# Single-level weighting + synthesis with household and person entities, the
+# selected id written in the *region* block and the template default
+# `geo: {ids: [], all_ids: True}` left in place -- the pattern of the THA
+# Wave 1 configs (written for 3.0.1/3.0.2).  3.0.4 ignored the region ids
+# here and tried to run every geography.
+project:
+ synthesize: True
+ name: Survey_W1_Style
+ location: .
+ inputs:
+  entities: [household, person]
+  housing_entities: [household]
+  person_entities: [person]
+  column_names:
+   hid: hid
+   pid: pid
+   region: region
+   sample_geo: sample_geo
+  location:
+   sample:
+    household: survey_sample.csv
+    person: survey_sample.csv
+   marginals:
+    geo:
+    region:
+     household: marginals.csv
+     person: marginals.csv
+   geo_corr_mapping:
+    region_to_sample: geo_sample_mapping.csv
+ scenario:
+  - description: W1Style
+    apply_region_controls: True
+    apply_cross_level: False
+    control_variables:
+     region:
+      household: [age_group, educ, hispanic, hh_income, hh_size, hhtotals]
+      person: [ptotals]
+     geo:
+    geos_to_synthesize:
+     region:
+      ids: [1]
+      all_ids: True
+     geo:
+      ids: []
+      all_ids: True
+    outputs:
+     performance: [ipf, reweighting, drawing]
+     weights:
+      export: True
+      collate_across_geos: False
+     summary:
+      region:
+       filename: summary_region.csv
+       filetype: csv
+      geo:
+       filename: summary_geo.csv
+       filetype: csv
+     synthetic_population:
+      housing:
+       filename: housing_synthetic.csv
+       filetype: csv
+      person:
+       filename: person_synthetic.csv
+       filetype: csv
