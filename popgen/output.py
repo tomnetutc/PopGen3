@@ -7,6 +7,7 @@ from scipy import stats
 
 from collections.abc import Mapping
 
+from .cells import stack_cells
 from .config import Config, wrap_config_value
 
 
@@ -38,7 +39,8 @@ class Syn_Population:
         self.draw_population_obj = draw_population_obj
         self.entities = entities
         self.housing_entities = housing_entities
-        self.person_entities = person_entities
+        # Optional since 3.0.6: with no person entity only the housing table is written.
+        self.person_entities = list(person_entities) if person_entities else []
 
         self.geo_name = self.column_names_config.geo
         self.region_name = self.column_names_config.region
@@ -108,8 +110,11 @@ class Syn_Population:
         # Use the configured household id column name (do NOT hard-code 'hid').
         self.housing_stacked_sample.set_index(self.hid_name, inplace=True, drop=True)
 
-        self.person_stacked_sample = self._get_stacked_sample(self.person_entities)
-        self.person_stacked_sample.set_index(self.hid_name, inplace=True, drop=True)
+        if self.person_entities:
+            self.person_stacked_sample = self._get_stacked_sample(self.person_entities)
+            self.person_stacked_sample.set_index(self.hid_name, inplace=True, drop=True)
+        else:
+            self.person_stacked_sample = None
 
     def _create_meta_data(self):
         """Create metadata for controls and entity types."""
@@ -131,7 +136,7 @@ class Syn_Population:
         self.entity_types_dict = {entity: "housing" for entity in self.housing_entities}
         self.entity_types_dict.update({entity: "person" for entity in self.person_entities})
 
-        self.entity_types = ["housing", "person"]
+        self.entity_types = ["housing", "person"] if self.person_entities else ["housing"]
 
     def _create_prepare_output_directory(self):
         """Prepare the output directory for storing results."""
@@ -200,13 +205,15 @@ class Syn_Population:
         start_time = time.time()
         self.pop_syn_data["housing"] = self.pop_syn.loc[:, self.pop_syn_geo_id_columns].join(
             self.housing_stacked_sample)
-        self.pop_syn_data["person"] = self.pop_syn.loc[:, self.pop_syn_geo_id_columns].join(self.person_stacked_sample)
         logging.info(f"Housing population size: {self.pop_syn_data['housing'].shape}")
-        logging.info(f"Person population size: {self.pop_syn_data['person'].shape}")
+        if self.person_stacked_sample is not None:
+            self.pop_syn_data["person"] = self.pop_syn.loc[:, self.pop_syn_geo_id_columns].join(
+                self.person_stacked_sample)
+            logging.info(f"Person population size: {self.pop_syn_data['person'].shape}")
 
     def _create_index(self):
         """Create indexes for synthetic population data."""
-        for entity_type in ["housing", "person"]:
+        for entity_type in self.entity_types:
             self.pop_syn_data[entity_type].reset_index(inplace=True)
             self.pop_syn_data[entity_type].set_index(
                 self.pop_syn_housing_matching_id_columns if entity_type == "housing" else self.pop_syn_person_matching_id_columns,
@@ -640,28 +647,13 @@ class Syn_Population:
 
     @staticmethod
     def get_stacked_sample_restruct(sample_restruct_list):
-        if len(sample_restruct_list) == 0:
-            return None
-        elif len(sample_restruct_list) == 1:
-            return sample_restruct_list[0]
+        """Stack the per-entity sample tables (rows: households, columns: cell keys).
 
-        # Initialize stacked sample with the first element
-        stacked_sample = sample_restruct_list[0]
-
-        for sample_restruct in sample_restruct_list[1:]:
-            # Merge using pd.concat and fill missing values with 0
-            stacked_sample = pd.concat([stacked_sample, sample_restruct], axis=1, join='outer').fillna(0)
-
-        # Sort row indices
-        stacked_sample.sort_index(inplace=True)
-
-        # Sort columns alphabetically
-        stacked_sample.sort_index(axis=1, inplace=True)
-
-        # Save to CSV file
-        # stacked_sample.to_csv("stacked_sample_restruct.csv", index=True)
-
-        return stacked_sample
+        Rows are outer-joined (missing counts become 0) and sorted, columns sorted
+        by cell key, as before.  Since 3.0.6 the keys stay intact whatever the
+        number of control variables of each entity (see popgen/cells.py).
+        """
+        return stack_cells(sample_restruct_list, fill_and_sort_rows=True)
 
 
 if __name__ == "__main__":

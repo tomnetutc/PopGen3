@@ -1,5 +1,75 @@
 # Changelog
 
+## 3.0.6 (2026-11-12)
+
+**Compatibility promise:** every configuration that ran with 3.0.5 gives
+byte-for-byte identical outputs (weights, synthetic population, summaries,
+multiway tables, performance files, `reweighting_fit_summary.csv`). Verified
+on the 86 runs used for 3.0.5, including the four Arizona examples (Python
+3.9-3.13, pandas 1.3 to 3.0), against the released 3.0.5, and with the test
+suite on x86-64 and ARM64.
+The one existing output that changes is `reweighting_fit_summary.csv` when the
+person entity has more control variables than the household entity, where
+3.0.5 misreported the person margins (see Fixed).
+
+### Fixed
+- **Entities with different numbers of control variables.** A cell key is the
+  entity name plus one category per control variable, so its length depends on
+  the entity. Up to 3.0.5 the keys sat in pandas MultiIndexes and the entity
+  tables were joined with `pd.concat`, whose result then depended on pandas.
+  With the household entity listed first (3.0.4 behaves the same):
+  - household + person with `synthesize: true` failed when writing the
+    synthetic population ("Not allowed to merge between different levels"),
+    unless pandas happened to flatten the keys - as in the Arizona example,
+    whose group-quarter entity has a single control;
+  - when the person entity had more control variables than the household
+    entity, its keys were cut to the length of the household keys; if the
+    dropped variables were not constant, different cells merged and IPU failed
+    ("cannot convert the series to <class 'float'>"); if they were (e.g. a
+    trailing `ptotals`), the weights were right but `reweighting_fit_summary.csv`
+    reported every person margin as 100 % off;
+  - household only with `synthesize: true` (e.g. drawing a synthetic
+    population from a survey) failed when writing the synthetic population;
+    a dummy person entity carrying only `ptotals` was needed.
+
+  The keys are now always plain tuples in a flat index (`popgen/cells.py`),
+  sorted exactly as before, so every configuration that worked gives the same
+  results. For the configurations above, 3.0.6 reproduces byte for byte what
+  3.0.5 produced with the entities listed person first, an order for which
+  pandas happened to keep the keys intact (`tests/golden/golden_306.json`).
+  The per-entity tables (e.g. `Run_IPF.geo_constraints_dict`) keep their
+  MultiIndex with one named level per control variable.
+- **`person_entities` may be empty.** With `synthesize: true` only
+  `housing_synthetic.csv` is then written. A person table listed under
+  `person_entities` but not controlled is still joined to the synthetic
+  households, as before.
+- `reweighting_fit_summary.csv`: cell keys that do not match the entity's
+  control variables are reported in the log and leave the margin columns empty,
+  instead of showing a deviation of 100 %.
+
+### Added (input checks)
+- `negative-target` (ERROR): a target below zero, e.g. when the marginals are
+  the difference of two sets of totals. IPF replaces it by the zero-marginal
+  correction, so the sample records of that category receive almost no weight;
+  until now this happened without any message. Like every ERROR it stops the
+  scenario only in strict mode, so results do not change.
+- `zero-target` (WARNING): a target of 0 for a category that has sample records.
+- `sample-column-name-clash`: with `synthesize: true`, a sample column named
+  like the geo column (or `unique_id_in_geo`) made the last step fail with
+  "columns overlap" after the whole run. The scenario now stops before IPF with
+  a clear message, strict mode or not. Weights-only runs are not affected.
+
+### Tests
+- `tests/test_cell_keys.py`: the configurations above against fingerprints from
+  3.0.5 in its working entity order (`tests/golden/make_golden_306.py`),
+  household-only synthesis, the fit summary, and the key-stacking helper. The
+  synthetic population and summaries are compared byte for byte; `weights.csv`
+  through a numeric fingerprint with a relative tolerance of 1e-9, because its
+  last decimal can differ between machines and pandas versions (e.g. with pandas
+  1.5 on ARM64, 7 of the 286,508 weights of one configuration differ by 1e-10).
+- The opt-in comparison with PyPI (`POPGEN_DIFFERENTIAL=1`) now also runs
+  against 3.0.5, including `reweighting_fit_summary.csv` and on pandas 3.
+
 ## 3.0.5 (2026-11-05)
 
 **Compatibility promise:** for every input that 3.0.4 handled correctly, the
@@ -67,7 +137,8 @@ names sort the person entity before the housing entities (see Fixed).
   worked example of Ye et al. (2009, Table 1), entity-name independence,
   geography selection, failure handling, input checks, and an opt-in
   byte-for-byte comparison with the PyPI 3.0.4 wheel. GitHub Actions CI on
-  Linux (Python 3.8-3.13, pandas 1.3-3.x) and Windows.
+  Linux (Python 3.9-3.13, pandas 1.3-3.x) and Windows. (Corrected in 3.0.6: the
+  entry said 3.8-3.13; Python 3.8 was tested locally only.)
 
 ### Packaging
 - Metadata moved to `pyproject.toml` (PEP 621); `setup.py` removed.

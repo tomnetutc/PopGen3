@@ -1,0 +1,98 @@
+{
+ "meta": {
+  "generated_with": "popgen3 3.0.5 with entities [person, household]; Python 3.12.3, numpy 1.26.4, pandas 2.2.3, scipy 1.13.1",
+  "configs": "built by the helpers in tests/conftest.py (arizona_without_group_quarters, survey_variant)",
+  "weights": "weights.csv as a numeric fingerprint (tests/conftest.py: weights_fingerprint), compared with a relative tolerance of 1e-9: its last decimal can differ between machines and pandas versions",
+  "excluded": "reweighting_fit_summary.csv (its rows follow the entity order), full-precision diagnostics (*average_diffs*, draws.csv) and the scenario YAML copies"
+ },
+ "runs": {
+  "arizona_no_gq": {
+   "files": {
+    "hhsize_income.csv": "4a156a84d6c990f976db331ea7c0ff9d93e837117193e254ac646ebcd04f6626",
+    "housing_synthetic.csv": "7eae8e7f3e9297384738229aa8f1460656e8af744c7ae8dcf81c0e787eb0c0b4",
+    "person_synthetic.csv": "f88400b74a48f23bc784244bf35932a6e51351c56395da27d68c74e2cc376008",
+    "rpsex_rpage.csv": "8aa4ab1a80df82dd0f8ebfc515318cfa3956f1e4b4799ae5173bb5ec4a6cd530",
+    "summary_geo.csv": "21125f03bb002009ce6e435add308492ee0970a2cb7b4e51870ee159cf4beb3c",
+    "summary_region.csv": "398690f1801828854978c39b6f002e270a717e9adc53958f741ef8b4d1cc01ef",
+    "ipf_geo_iters_convergence_household.csv": "069a528190756e3a14a202a8a7575a0e99ea1c2c5d679d67f6abcc2a3d751652",
+    "ipf_geo_iters_convergence_person.csv": "100a15763a9726ed11c75ddfdb202a0b3b3e0ade27800756a90b869d9c5dca96",
+    "ipf_region_iters_convergence_household.csv": "6d64f9121605a2850ab6e0ee98338156d13edc2503b40d795c3ae316ca27b8ab",
+    "ipf_region_iters_convergence_person.csv": "b5bd8d881b0f53c83aadd9d523bdaa6d2c2508d232e6d6dbe8db1f9df018b20d"
+   },
+   "weights": {
+    "households": 143254,
+    "ids_sha256": "bfb9cfe6b4324bfbfecbe089664f10896376950dfb540f0585ad022f5bbf33d8",
+    "sums": {
+     "4013010101": [
+      2207.8283510440942,
+      1069.800797997369,
+      1060.3983986069863,
+      4322.2978856823265
+     ],
+     "4013010102": [
+      2259.9889753604302,
+      1107.4668050571313,
+      1106.050204300156,
+      1955.7259164065288
+     ]
+    }
+   }
+  },
+  "arizona_no_gq_two_household_controls": {
+   "files": {
+    "hhsize_income.csv": "eadb889fd2cd9f470a6ca879311ff94e33cb4fad96a40c1eae58ad81a2d106db",
+    "housing_synthetic.csv": "938609be20e132a141ad11a9de31c30e24fe147e108af28182f918636db8e6e9",
+    "person_synthetic.csv": "37f47117d3c0b3e9c3419126079f9e7869e009692353cd17d81d2791e7d35388",
+    "rpsex_rpage.csv": "c19af5f8da328baa640143ad1156797ebab9e827ea99edafea941d31bef0c99b",
+    "summary_geo.csv": "6d62e36f7d48dd6ebe74e8a9a3159e3386e4afdb2e343630d8394f6ebaf45922",
+    "summary_region.csv": "0d899382bc183208ed39a1038f22096ff9419b43ed0bfffc14c76446ffc934e1",
+    "ipf_geo_iters_convergence_household.csv": "9f9b588813cb07687c721e2027a6e0b08b26aee18040f9297deecd51e061e3cb",
+    "ipf_geo_iters_convergence_person.csv": "100a15763a9726ed11c75ddfdb202a0b3b3e0ade27800756a90b869d9c5dca96",
+    "ipf_region_iters_convergence_household.csv": "3e6770394ea738dfb32e5f900780a920b4a14312cbbb339739a09c99d699390a",
+    "ipf_region_iters_convergence_person.csv": "b5bd8d881b0f53c83aadd9d523bdaa6d2c2508d232e6d6dbe8db1f9df018b20d"
+   },
+   "weights": {
+    "households": 143254,
+    "ids_sha256": "bfb9cfe6b4324bfbfecbe089664f10896376950dfb540f0585ad022f5bbf33d8",
+    "sums": {
+     "4013010101": [
+      3540.045387733351,
+      1760.484539553363,
+      1764.258389661628,
+      754.7761999162581
+     ],
+     "4013010102": [
+      3289.093050215526,
+      1633.2591988315035,
+      1636.1463888893368,
+      541.1481014871008
+     ]
+    }
+   }
+  },
+  "survey_two_level_synthesis": {
+   "files": {
+    "housing_synthetic.csv": "2364cd34bdd3bc4c39f29180275f3931f87d8b69aac6231e9355d681f276aed2",
+    "person_synthetic.csv": "0730f2cac6ca6f4e68832e2542fbfe3ef4f239a1731939f6231f00539c55021c"
+   },
+   "weights": {
+    "households": 700,
+    "ids_sha256": "7255420e72f309f48342a95cc4fcabdb53de69d19ea42552a1bf159284be3e46",
+    "sums": {
+     "1": [
+      10000.0000000023,
+      4750.357006727418,
+      4974.688520313185,
+      242565.3172610259
+     ],
+     "2": [
+      6500.0000000029,
+      3149.2370370095537,
+      3230.815432914338,
+      106584.32013139961
+     ]
+    }
+   }
+  }
+ }
+}

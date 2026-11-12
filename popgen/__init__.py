@@ -11,7 +11,7 @@ This package implements a population synthesis pipeline:
 from .project import popgen_run
 from .errors import ConfigurationError, InputValidationError, PopGenError, ScenarioError
 
-__version__ = '3.0.5'
+__version__ = '3.0.6'
 
 
 def run(config_path: str, strict=None) -> None:

@@ -344,18 +344,23 @@ class Run_Reweighting:
 
     @staticmethod
     def _to_margins(cells: dict, names: dict):
-        """Collapse {(entity, v1, v2, ...): value} to {(entity, var, str(category)): total}."""
+        """Collapse {(entity, v1, v2, ...): value} to {(entity, var, str(category)): total}.
+
+        Returns the totals and the number of cell keys that do not match the
+        entity's control variables (3.0.5 skipped such keys silently, so a whole
+        entity could be reported as 100 % off; see popgen/cells.py).
+        """
         out = {}
+        bad = 0
         for col, value in cells.items():
-            if not isinstance(col, tuple) or not col:
-                continue
-            vars_ = names.get(col[0])
+            vars_ = names.get(col[0]) if isinstance(col, tuple) and col else None
             if not vars_ or len(col) != len(vars_) + 1:
+                bad += 1
                 continue
             for var, cat in zip(vars_, col[1:]):
                 key = (col[0], var, str(cat))
                 out[key] = out.get(key, 0.0) + float(value)
-        return out
+        return out, bad
 
     def _input_margins(self, level, gid, entity, names):
         """Control totals exactly as given in the marginals file (None if unavailable)."""
@@ -385,14 +390,21 @@ class Run_Reweighting:
             if not t_cells:
                 continue
             nc, cmean, cmax, cworst = self._rel_dev(m_cells, t_cells)
-            m_margins = self._to_margins(m_cells, names)
+            m_margins, bad = self._to_margins(m_cells, names)
             t_margins = self._input_margins(level, gid, entity, names)
             if t_margins is None:
                 # Fall back to the IPF-fitted totals; ignore the tiny values that the
                 # zero-marginal correction puts into otherwise empty categories.
-                t_margins = {k: v for k, v in self._to_margins(t_cells, names).items() if v >= 1e-3}
-            m_margins = {k: m_margins.get(k, 0.0) for k in t_margins}  # no sample record -> 0
-            nm, mmean, mmax, mworst = self._rel_dev(m_margins, t_margins)
+                t_all, bad_t = self._to_margins(t_cells, names)
+                bad += bad_t
+                t_margins = {k: v for k, v in t_all.items() if v >= 1e-3}
+            if bad:
+                logging.warning(f"Fit summary: {bad} cell key(s) of entity '{entity}' ({level} {gid}) do not "
+                                f"match its control variables; its margin deviations are left empty.")
+                nm, mmean, mmax, mworst = 0, float("nan"), float("nan"), None
+            else:
+                m_margins = {k: m_margins.get(k, 0.0) for k in t_margins}  # no sample record -> 0
+                nm, mmean, mmax, mworst = self._rel_dev(m_margins, t_margins)
             rows.append({
                 "level": level, "region": region_id, "id": gid, "entity": entity, "iterations": iterations_run,
                 "margins": nm, "margin_mean_abs_rel_dev": mmean, "margin_max_abs_rel_dev": mmax,

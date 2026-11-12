@@ -332,7 +332,8 @@ class Scenario:
         """Read-only input checks; raise only in strict mode (see popgen.validation)."""
         issues = validation.validate_scenario(
             self.db, self.scenario_config, self.column_names_config,
-            self.entities, self.housing_entities, self.person_entities)
+            self.entities, self.housing_entities, self.person_entities,
+            synthesize=self.synthesize)
         validation.report(issues, self.scenario_config.description, self.strict)
 
     def _run_ipf(self):

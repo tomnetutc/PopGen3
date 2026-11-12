@@ -1,9 +1,10 @@
-"""Side-by-side comparison with the released popgen3 3.0.4 (opt-in).
+"""Side-by-side comparison with the released popgen3 3.0.4 and 3.0.5 (opt-in).
 
-Set POPGEN_DIFFERENTIAL=1 to run.  The 3.0.4 wheel is downloaded from PyPI and
-both versions are run on the same inputs in the *same* environment, so every
-output file (diagnostics included) must match byte for byte -- this check is
-independent of the numpy/pandas/BLAS versions installed.
+Set POPGEN_DIFFERENTIAL=1 to run.  Each release's wheel is downloaded from PyPI
+(or taken from $POPGEN_304_WHEEL / $POPGEN_305_WHEEL) and run on the same inputs
+in the *same* environment as the working tree, so every output file
+(diagnostics included) must match byte for byte -- this check is independent
+of the numpy/pandas/BLAS versions installed.
 """
 import os
 import subprocess
@@ -16,19 +17,16 @@ from conftest import DATA, SURVEY, copy_inputs, output_dirs
 
 import pandas as _pd
 
-pytestmark = [
-    pytest.mark.skipif(os.environ.get("POPGEN_DIFFERENTIAL") != "1",
-                       reason="set POPGEN_DIFFERENTIAL=1 to compare against PyPI popgen3 3.0.4"),
-    # 3.0.4 itself fails on pandas >= 3 (read-only arrays under copy-on-write), so it
-    # cannot serve as the reference there; the golden tests cover pandas 3.
-    pytest.mark.skipif(int(_pd.__version__.split(".")[0]) >= 3,
-                       reason="popgen3 3.0.4 does not run on pandas >= 3"),
-]
+pytestmark = pytest.mark.skipif(os.environ.get("POPGEN_DIFFERENTIAL") != "1",
+                                reason="set POPGEN_DIFFERENTIAL=1 to compare against PyPI releases")
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-NEW_FILES = {"reweighting_fit_summary.csv"}  # diagnostics added in 3.0.5
+RELEASES = {  # version: output files the working tree writes and that release does not
+    "3.0.4": {"reweighting_fit_summary.csv"},  # diagnostics added in 3.0.5
+    "3.0.5": set(),
+}
 
-CASES = [  # (input dir, config) - inputs where 3.0.4 behaves as intended
+CASES = [  # (input dir, config) - inputs where 3.0.4 and 3.0.5 behave as intended
     (DATA, "configuration_arizona.yaml"),
     (DATA, "configuration_arizona_two_levels.yaml"),
     (DATA, "configuration_arizona_single_level.yaml"),
@@ -39,21 +37,25 @@ if os.environ.get("POPGEN_DIFFERENTIAL_SLOW") == "1":
     CASES.append((DATA, "configuration_arizona_scenario2.yaml"))  # ~5 minutes
 
 
-@pytest.fixture(scope="module")
-def popgen_304(tmp_path_factory):
-    """Extract the 3.0.4 wheel: from $POPGEN_304_WHEEL if set (offline), else pip download."""
-    d = tmp_path_factory.mktemp("popgen304")
-    wheel = os.environ.get("POPGEN_304_WHEEL")
+@pytest.fixture(scope="module", params=sorted(RELEASES))
+def release(request, tmp_path_factory):
+    """(version, extracted wheel) from $POPGEN_<version>_WHEEL if set (offline), else pip download."""
+    version = request.param
+    if version == "3.0.4" and int(_pd.__version__.split(".")[0]) >= 3:
+        # 3.0.4 itself fails on pandas >= 3 (read-only arrays under copy-on-write).
+        pytest.skip("popgen3 3.0.4 does not run on pandas >= 3")
+    d = tmp_path_factory.mktemp("popgen" + version.replace(".", ""))
+    wheel = os.environ.get(f"POPGEN_{version.replace('.', '')}_WHEEL")
     if not wheel:
-        res = subprocess.run([sys.executable, "-m", "pip", "download", "popgen3==3.0.4", "--no-deps",
+        res = subprocess.run([sys.executable, "-m", "pip", "download", f"popgen3=={version}", "--no-deps",
                               "--only-binary=:all:", "-d", str(d)], capture_output=True, text=True)
         if res.returncode != 0:
-            pytest.skip("could not download popgen3==3.0.4 (set POPGEN_304_WHEEL to a local wheel): "
-                        + res.stderr.strip()[-300:])
+            pytest.skip(f"could not download popgen3=={version} (set POPGEN_{version.replace('.', '')}_WHEEL "
+                        f"to a local wheel): " + res.stderr.strip()[-300:])
         wheel = str(d / next(p for p in os.listdir(d) if p.endswith(".whl")))
     pkg = d / "pkg"
     zipfile.ZipFile(wheel).extractall(pkg)
-    return str(pkg)
+    return version, str(pkg)
 
 
 def _run(pkg_dir, workdir, config):
@@ -68,12 +70,13 @@ def _run(pkg_dir, workdir, config):
 
 
 @pytest.mark.parametrize("src,config", CASES, ids=[c for _, c in CASES])
-def test_identical_to_pypi_304(popgen_304, tmp_path, src, config):
-    old = _run(popgen_304, copy_inputs(src, tmp_path / "old"), config)
+def test_identical_to_pypi_release(release, tmp_path, src, config):
+    version, pkg = release
+    old = _run(pkg, copy_inputs(src, tmp_path / "old"), config)
     new = _run(REPO, copy_inputs(src, tmp_path / "new"), config)
     old_files, new_files = set(os.listdir(old)), set(os.listdir(new))
-    assert new_files - old_files <= NEW_FILES, new_files - old_files
+    assert new_files - old_files <= RELEASES[version], new_files - old_files
     assert old_files <= new_files, old_files - new_files
     differ = [fn for fn in sorted(old_files)
               if open(os.path.join(old, fn), "rb").read() != open(os.path.join(new, fn), "rb").read()]
-    assert not differ, f"{config}: files differ from 3.0.4: {differ}"
+    assert not differ, f"{config}: files differ from {version}: {differ}"

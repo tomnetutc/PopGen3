@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 # from .config import Config
 import time
+from popgen.cells import stack_cells
 from popgen.config import Config
 
 # TODO: Move all DS processing in the Syn_Population Class
@@ -371,21 +372,10 @@ class Run_IPF:
         return ipf_results, ipf_iters_convergence.T, ipf_average_diffs.T
 
     def _get_stacked_constraints(self, constraints_list):
-        """Stacks constraints across multiple entities."""
-        if not constraints_list:
-            return None
-        elif len(constraints_list) == 1:
-            return constraints_list[0].T
-
-        stacked_constraints = constraints_list[0].T
-        for constraint in constraints_list[1:]:
-            try:
-                stacked_constraints = pd.concat([stacked_constraints, constraint.T], axis=1, join='outer')
-            except pd.errors.MergeError as e:
-                logging.error(f"MergeError: {e}")
-                raise
-        stacked_constraints.sort_index(axis=1, inplace=True)
-        return stacked_constraints
+        """Stacks constraints across multiple entities (rows: geographies, columns:
+        cell keys in sorted order).  Since 3.0.6 the keys stay intact whatever the
+        number of control variables of each entity (see popgen/cells.py)."""
+        return stack_cells([constraint.T for constraint in constraints_list])
 
     def _get_columns_constraints_dict(self, constraints_dict):
         """Extracts column constraints as a dictionary."""

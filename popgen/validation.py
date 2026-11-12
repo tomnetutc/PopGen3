@@ -12,6 +12,11 @@ change any result.  Every finding is logged:
 By default the run then continues exactly as in earlier releases.  With
 ``validation: {strict: true}`` (scenario or project level), ``popgen --strict``
 or ``popgen.run(..., strict=True)``, any ERROR stops the scenario before IPF.
+
+A few findings are *fatal*: the run is certain to fail at its very end (e.g.
+when the synthetic population is written), so the scenario stops before IPF
+even without strict mode.  No configuration that used to produce outputs is
+affected.
 """
 
 from __future__ import annotations
@@ -34,6 +39,7 @@ class Issue:
     level: str  # "ERROR" | "WARNING"
     code: str
     message: str
+    fatal: bool = False  # the run cannot succeed: stop even without strict mode
 
     def __str__(self) -> str:  # pragma: no cover - formatting only
         return f"[{self.level}] {self.code}: {self.message}"
@@ -110,12 +116,13 @@ def _as_float_set(values: Iterable) -> set:
 # main entry point
 # ---------------------------------------------------------------------------
 def validate_scenario(db, scenario_config, column_names_config, entities: Sequence[str],
-                      housing_entities: Sequence[str], person_entities: Sequence[str]) -> List[Issue]:
+                      housing_entities: Sequence[str], person_entities: Sequence[str],
+                      synthesize: bool = False) -> List[Issue]:
     """Run all checks for one scenario and return the findings (does not log)."""
     issues: List[Issue] = []
 
-    def add(level, code, msg):
-        issues.append(Issue(level, code, msg))
+    def add(level, code, msg, fatal=False):
+        issues.append(Issue(level, code, msg, fatal))
 
     def guarded(fn):
         try:
@@ -290,8 +297,77 @@ def validate_scenario(db, scenario_config, column_names_config, entities: Sequen
                         f"{map_key} points selected {level}s to {sample_geo} {[int(a) if float(a).is_integer() else a for a in absent][:10]}, "
                         f"which has no records in the {e} sample.")
 
+    def check_targets():
+        # New in 3.0.6.  IPF replaces a target below the zero-marginal correction by
+        # that tiny number, so the records of the category end up with almost no
+        # weight - silently up to 3.0.5.
+        for level, margs, ids, map_key in levels:
+            mapping = db.geo.get(map_key) if isinstance(db.geo, dict) else None
+            if isinstance(mapping, pd.DataFrame) and sample_geo in mapping.columns:
+                mapped = mapping[sample_geo]
+                shared = mapped[mapped.index.isin(ids)].value_counts() if ids else mapped.value_counts()
+            else:
+                mapped, shared = None, None
+            for e in entities:
+                vars_ = _controls(controls_cfg, level, e)
+                marg = margs.get(e)
+                if not vars_ or marg is None or not isinstance(marg.columns, pd.MultiIndex):
+                    continue
+                sel = marg.loc[marg.index.intersection(ids)] if ids else marg
+                if sel.empty:
+                    continue
+                df = db.sample.get(e) if isinstance(db.sample, dict) else None
+                geo_col = _column(df, sample_geo) if df is not None else None
+
+                def own_records(gid, var, cat):
+                    """Records of category *cat* in the sample that only this geography uses.
+                    A zero target in a zone that shares its sample with other zones (e.g.
+                    TAZs of one PUMA) is just an empty category there, not a problem."""
+                    if mapped is None or geo_col is None or gid not in mapped.index:
+                        return 0
+                    sg = mapped.loc[gid]
+                    if isinstance(sg, pd.Series) or shared is None or shared.get(sg, 0) != 1:
+                        return 0
+                    rows = df if float(sg) == -1 else df[geo_col.astype(float) == float(sg)]
+                    col = _column(rows, var)
+                    return 0 if col is None else int((col.astype(str) == str(cat)).sum())
+
+                for var in vars_:
+                    for column in [c for c in sel.columns if str(c[0]) == var]:
+                        vals = pd.to_numeric(sel[column], errors="coerce")
+                        neg = vals[vals < 0]
+                        if len(neg):
+                            add("ERROR", "negative-target",
+                                f"{level} {e} control '{var}' = {column[1]}: target below zero in {len(neg)} "
+                                f"{level}(s) (e.g. {level} {neg.index[0]}: {neg.iloc[0]:g}). IPF treats it as the "
+                                f"zero-marginal correction (a tiny positive number), so sample records in this "
+                                f"category receive almost no weight there.")
+                        hit = [(gid, n) for gid in vals[vals == 0].index
+                               for n in [own_records(gid, var, column[1])] if n]
+                        if hit:
+                            add("WARNING", "zero-target",
+                                f"{level} {e} control '{var}' = {column[1]}: target is 0 in {len(hit)} {level}(s) "
+                                f"whose own sample has records in this category (e.g. {level} {hit[0][0]}: "
+                                f"{hit[0][1]} records); they receive almost no weight there.")
+
+    def check_output_columns():
+        # New in 3.0.6.  The synthetic population adds its own geo and
+        # "unique_id_in_geo" columns before joining the sample tables; a sample
+        # column with either name made the very last step fail ("columns overlap").
+        if not synthesize:
+            return
+        reserved = [str(_raw(column_names_config, "geo", "geo")), "unique_id_in_geo"]
+        tables = list(housing_entities) + [p for p in (person_entities or []) if p in db.sample]
+        for e in dict.fromkeys(tables):
+            clash = [c for c in reserved if c in db.sample[e].columns]
+            for c in clash:
+                add("ERROR", "sample-column-name-clash",
+                    f"the {e} sample has a column named '{c}', which the synthetic population uses for its own "
+                    f"'{c}' column, so writing it would fail (\"columns overlap\"). Rename or drop that column "
+                    f"in the sample file.", fatal=True)
+
     for check in (check_samples_present, check_household_ids, check_person_ids,
-                  check_controls, check_totals, check_geographies):
+                  check_controls, check_totals, check_targets, check_geographies, check_output_columns):
         guarded(check)
     return issues
 
@@ -319,6 +395,11 @@ def report(issues: List[Issue], description: str, strict: bool) -> None:
         log(f"Input check {it.level} [{it.code}] {it.message}")
     n_err = sum(it.level == "ERROR" for it in issues)
     n_warn = len(issues) - n_err
+    fatal = [it for it in issues if it.fatal]
+    if fatal:
+        raise InputValidationError(
+            f"Scenario '{description}': the run cannot succeed: {fatal[0].message}"
+            + (f" (and {len(fatal) - 1} more; see the log above)" if len(fatal) > 1 else ""))
     if n_err and strict:
         raise InputValidationError(
             f"Scenario '{description}': {n_err} input error(s) found (strict validation). See the log above.")
